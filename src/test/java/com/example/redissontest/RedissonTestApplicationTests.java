@@ -1,5 +1,7 @@
 package com.example.redissontest;
 
+import com.example.redissontest.entity.SubObj;
+import com.example.redissontest.entity.TestObj;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
@@ -173,6 +176,55 @@ class RedissonTestApplicationTests {
             //没有获取到信号量，直接返回，类似服务降级
         }
         TimeUnit.SECONDS.sleep(10);
+    }
+
+
+    /**
+     * bucket
+     * @throws Exception
+     */
+    @Test
+    public void bucket() throws Exception {
+        //同步
+        RBucket<String> bucket = redissonClient.getBucket("name");
+        bucket.set("zhaoyun");
+        System.out.println(bucket.get());
+
+        //异步
+        RBucket<String> bucket2 = redissonClient.getBucket("name2");
+        bucket2.setAsync("赵云2").get();
+        bucket2.getAsync().thenAccept(System.out::println);
+
+        //对象
+        RBucket<TestObj> bucket3= redissonClient.getBucket("obj");
+        TestObj testObj = new TestObj();
+        testObj.setId(111);
+        testObj.setName("name");
+        SubObj subObj = new SubObj();
+        subObj.setSubId(222);
+        subObj.setSubName("subName");
+        testObj.setSubObj(subObj);
+        bucket3.set(testObj);
+        System.out.println(bucket3.get());
+
+        System.out.println(redissonClient.getBucket("obj").get());
+
+        RBuckets buckets = redissonClient.getBuckets();
+        //List<RBucket<Object>> foundBuckets = buckets.find("myBucket*");
+        Map<String, Object> loadedBuckets = buckets.get("name", "name2", "obj");
+
+
+        //Reactive
+        /*RBucketReactive<String> bucket3 = reactiveClient.getBucket("name3");
+        bucket3.set("赵云3").block();
+        bucket3.get().subscribe(System.out::println);*/
+
+        //RxJava2
+        /*RBucketRx<String> bucket4 = rxClient.getBucket("name4");
+        bucket4.set("赵云4").blockingGet();
+        bucket4.get().subscribe(System.out::println);*/
+
+        //Thread.sleep(1000 * 5);
     }
 
 
